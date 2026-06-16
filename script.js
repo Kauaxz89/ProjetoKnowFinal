@@ -130,15 +130,16 @@ function showScreen(id) {
     document.getElementById(id).classList.add('active');
 }
 
- 
+
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€ RASPADINHA LOTERIA â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-let raspaCanvas;
-let ctxRaspa;
 let raspando = false;
 let terminouRaspa = false;
-let premio = null;
-let simbolos = [];
+let premioGanho = null;
+let celulaAtiva = null;
+let celulasReveladas = 0;
+let ctxCelulas = [];
+let gridSimbolos = []; // guarda os emojis sem mostrar no DOM
 const RASPA_ULTIMA_DATA_KEY = "know_raspa_ultima_data";
 
 const premiosRaspa = [
@@ -149,188 +150,312 @@ const premiosRaspa = [
     { emoji: "🎟️", nome: "Ingresso VIP Feira Tech", sub: "Entrada exclusiva!" }
 ];
 
-const simbolosExtras = ["🍀", "⭐", "💎", "🍒", "🔔", "🍋", "🍉", "7️⃣", "🔥", "⚡", "🎲", "🏆"];
+const simbolosExtras = ["🍀", "⭐", "💎", "🍒", "🔔", "🍋", "7️⃣", "🔥", "⚡", "🏆"];
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
 
 function initRaspa() {
-    const area = document.getElementById("raspa-premio-bg");
-    const grid = document.getElementById("lottery-grid");
-    const strip = document.getElementById("lottery-prize-strip");
     const msg = document.getElementById("raspa-msg");
     const fill = document.getElementById("raspa-prog-fill");
-    const label = document.getElementById("raspa-prog-label");
-
-    if (!area || !grid) return;
-
-    if (jaRaspouHoje()) {
-        terminouRaspa = true;
-        raspando = false;
-        grid.innerHTML = "";
-        strip.innerHTML = `<span>Limite diário</span><strong>Volte amanhã</strong>`;
-        msg.innerHTML = "Você já raspou sua cartela de hoje. Tente novamente amanhã!";
-        msg.style.display = "block";
-        msg.classList.remove("win");
-        fill.style.width = "100%";
-        label.textContent = "Limite diário usado";
-
-        raspaCanvas = document.getElementById("raspa-canvas");
-        if (raspaCanvas) raspaCanvas.style.display = "none";
-        return;
-    }
+    const lbl = document.getElementById("raspa-prog-label");
+    const grid = document.getElementById("lottery-grid");
+    const strip = document.getElementById("lottery-prize-strip");
+    if (!grid) return;
 
     terminouRaspa = false;
     raspando = false;
-    premio = null;
+    premioGanho = null;
+    celulaAtiva = null;
+    celulasReveladas = 0;
+    ctxCelulas = [];
+    gridSimbolos = [];
+
     msg.innerHTML = "";
     msg.style.display = "none";
     msg.classList.remove("win");
     fill.style.width = "0%";
-    label.textContent = "0% raspado";
+    lbl.textContent = "0 de 9 revelados";
 
-    criarCartela();
+    const cvGlobal = document.getElementById("raspa-canvas");
+    if (cvGlobal) cvGlobal.style.display = "none";
 
-    raspaCanvas = document.getElementById("raspa-canvas");
-    const rect = area.getBoundingClientRect();
-    raspaCanvas.width = Math.max(1, Math.round(rect.width));
-    raspaCanvas.height = Math.max(1, Math.round(rect.height));
-    raspaCanvas.style.display = "block";
-
-    ctxRaspa = raspaCanvas.getContext("2d");
-    desenharCobertura();
-
-    raspaCanvas.onpointerdown = e => {
-        raspando = true;
-        raspaCanvas.setPointerCapture(e.pointerId);
-        raspar(e);
-    };
-    raspaCanvas.onpointermove = e => {
-        if (raspando) raspar(e);
-    };
-    raspaCanvas.onpointerup = () => raspando = false;
-    raspaCanvas.onpointercancel = () => raspando = false;
-}
-
-function criarCartela() {
-    const grid = document.getElementById("lottery-grid");
-    const strip = document.getElementById("lottery-prize-strip");
-    const ganhou = Math.random() < 0.5;
-
-    premio = premiosRaspa[Math.floor(Math.random() * premiosRaspa.length)];
-    strip.innerHTML = `<span>Prêmio alvo</span><strong>${premio.emoji} ${premio.nome}</strong>`;
-
-    simbolos = ganhou ? criarCartelaPremiada(premio.emoji) : criarCartelaPerdedora();
-    simbolos = embaralhar(simbolos);
-
-    grid.innerHTML = simbolos.map(s => `<div class="lottery-cell-symbol">${s}</div>`).join("");
-    if (!ganhou) premio = null;
-}
-
-function criarCartelaPremiada(emojiPremio) {
-    const base = [emojiPremio, emojiPremio, emojiPremio];
-    const extras = simbolosExtras.filter(s => s !== emojiPremio);
-    while (base.length < 9) {
-        const s = extras[Math.floor(Math.random() * extras.length)];
-        if (base.filter(v => v === s).length < 2) base.push(s);
+    if (jaRaspouHoje()) {
+        _bloquearCartela(grid, strip, msg, fill, lbl);
+        return;
     }
-    return base;
+
+    _criarCartela(grid, strip);
 }
 
-function criarCartelaPerdedora() {
-    const todos = premiosRaspa.map(p => p.emoji).concat(simbolosExtras);
-    const base = [];
-    while (base.length < 9) {
-        const s = todos[Math.floor(Math.random() * todos.length)];
-        if (base.filter(v => v === s).length < 2) base.push(s);
+// ── CARTELA ───────────────────────────────────────────────────────────────────
+
+// Probabilidade de vitória (mais difícil: 18% de chance)
+const RASPA_CHANCE_VITORIA = 0.18;
+
+function _criarCartela(grid, strip) {
+    const ganhou = Math.random() < RASPA_CHANCE_VITORIA;
+    const premio = premiosRaspa[Math.floor(Math.random() * premiosRaspa.length)];
+
+    // Se ganhou, escolhe aleatoriamente entre uma linha (0-2) ou uma coluna (0-2)
+    let tipoWin = null, indiceWin = -1;
+    if (ganhou) {
+        tipoWin = Math.random() < 0.5 ? "linha" : "coluna";
+        indiceWin = Math.floor(Math.random() * 3);
     }
-    return base;
-}
 
-function embaralhar(lista) {
-    return [...lista].sort(() => Math.random() - 0.5);
-}
+    strip.innerHTML = `<span>Prêmio a revelar</span><strong>❓ Raspe para descobrir</strong>`;
 
-function dataRaspaHoje() {
-    return new Date().toLocaleDateString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
+    // Monta a matriz 3x3 célula por célula, controlando linhas E colunas
+    const matriz = [[null, null, null], [null, null, null], [null, null, null]];
+
+    if (ganhou && tipoWin === "linha") {
+        for (let c = 0; c < 3; c++) matriz[indiceWin][c] = premio.emoji;
+    }
+    if (ganhou && tipoWin === "coluna") {
+        for (let l = 0; l < 3; l++) matriz[l][indiceWin] = premio.emoji;
+    }
+
+    // Preenche o restante das células evitando trincas acidentais em qualquer linha/coluna
+    for (let l = 0; l < 3; l++) {
+        for (let c = 0; c < 3; c++) {
+            if (matriz[l][c] !== null) continue;
+            matriz[l][c] = _simboloSeguro(matriz, l, c, premio.emoji);
+        }
+    }
+
+    gridSimbolos = matriz.flat(); // salva emojis em JS, nunca no DOM
+    premioGanho = ganhou ? { ...premio, tipo: tipoWin, indice: indiceWin } : null;
+
+    // Renderiza 3 linhas × 3 células — apenas canvas, SEM emoji no HTML
+    grid.innerHTML = matriz.map((_, li) => `
+        <div class="lottery-row" id="lottery-row-${li}">
+            ${[0, 1, 2].map(ci => {
+        const idx = li * 3 + ci;
+        return `<div class="lottery-cell-wrap" id="cell-wrap-${idx}">
+                    <canvas class="cell-canvas" id="cell-cv-${idx}"></canvas>
+                </div>`;
+    }).join("")}
+        </div>
+    `).join("");
+
+    requestAnimationFrame(() => {
+        for (let idx = 0; idx < 9; idx++) {
+            const wrap = document.getElementById(`cell-wrap-${idx}`);
+            const cv = document.getElementById(`cell-cv-${idx}`);
+            if (!wrap || !cv) continue;
+
+            cv.width = wrap.offsetWidth;
+            cv.height = wrap.offsetHeight;
+
+            const ctx = cv.getContext("2d");
+            _desenharCelula(ctx, cv.width, cv.height);
+            ctxCelulas[idx] = { ctx, cv, revelada: false };
+
+            cv.addEventListener("pointerdown", e => _iniciarCelula(idx, e));
+            cv.addEventListener("pointermove", e => { if (raspando && celulaAtiva === idx) _rasparCelula(idx, e); });
+            cv.addEventListener("pointerup", () => { raspando = false; });
+            cv.addEventListener("pointercancel", () => { raspando = false; });
+        }
     });
 }
 
-function jaRaspouHoje() {
-    return localStorage.getItem(RASPA_ULTIMA_DATA_KEY) === dataRaspaHoje();
+// Escolhe um símbolo para a célula [l][c] evitando completar uma trinca
+// acidental (3 iguais) em qualquer linha ou coluna que não a sorteada.
+function _simboloSeguro(matriz, l, c, emojiPremioSorteado) {
+    const pool = simbolosExtras.concat(premiosRaspa.map(p => p.emoji));
+
+    const candidatos = pool.filter(s => {
+        // Conta quantas vezes 's' já aparece na linha (excluindo a própria célula)
+        const naLinha = matriz[l].filter((v, i) => i !== c && v === s).length;
+        // Conta quantas vezes 's' já aparece na coluna
+        const naColuna = [0, 1, 2].filter(li => li !== l && matriz[li][c] === s).length;
+        // Bloqueia se colocar 's' formaria uma trinca (2 já presentes + esta = 3)
+        if (naLinha >= 2 || naColuna >= 2) return false;
+        return true;
+    });
+
+    const escolhidos = candidatos.length ? candidatos : pool;
+    return escolhidos[Math.floor(Math.random() * escolhidos.length)];
 }
 
-function desenharCobertura() {
-    const grad = ctxRaspa.createLinearGradient(0, 0, raspaCanvas.width, raspaCanvas.height);
-    grad.addColorStop(0, "#f6f6f6");
-    grad.addColorStop(0.45, "#9d9d9d");
-    grad.addColorStop(1, "#dedede");
-    ctxRaspa.globalCompositeOperation = "source-over";
-    ctxRaspa.fillStyle = grad;
-    ctxRaspa.fillRect(0, 0, raspaCanvas.width, raspaCanvas.height);
-
-    ctxRaspa.fillStyle = "rgba(255,255,255,.22)";
-    for (let i = 0; i < 700; i++) {
-        ctxRaspa.fillRect(Math.random() * raspaCanvas.width, Math.random() * raspaCanvas.height, 1, 1);
-    }
-
-    ctxRaspa.fillStyle = "#222";
-    ctxRaspa.font = "700 24px Arial";
-    ctxRaspa.textAlign = "center";
-    ctxRaspa.fillText("SCRATCH TO WIN", raspaCanvas.width / 2, raspaCanvas.height / 2 - 6);
-    ctxRaspa.font = "700 14px Arial";
-    ctxRaspa.fillText("RASPE AQUI", raspaCanvas.width / 2, raspaCanvas.height / 2 + 22);
-}
-
-function raspar(e) {
-    if (terminouRaspa) return;
-
-    const rect = raspaCanvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (raspaCanvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (raspaCanvas.height / rect.height);
-
-    ctxRaspa.globalCompositeOperation = "destination-out";
-    ctxRaspa.beginPath();
-    ctxRaspa.arc(x, y, 34, 0, Math.PI * 2);
-    ctxRaspa.fill();
-    verificarArea();
-}
-
-function verificarArea() {
-    const img = ctxRaspa.getImageData(0, 0, raspaCanvas.width, raspaCanvas.height);
-    let apagados = 0;
-
-    for (let i = 3; i < img.data.length; i += 4) {
-        if (img.data[i] === 0) apagados++;
-    }
-
-    const porcentagem = apagados / (raspaCanvas.width * raspaCanvas.height) * 100;
-    document.getElementById("raspa-prog-fill").style.width = Math.min(100, porcentagem) + "%";
-    document.getElementById("raspa-prog-label").textContent = Math.round(porcentagem) + "% raspado";
-
-    if (porcentagem > 45) finalizarRaspa();
-}
-
-function finalizarRaspa() {
+function _bloquearCartela(grid, strip, msg, fill, lbl) {
     terminouRaspa = true;
-    localStorage.setItem(RASPA_ULTIMA_DATA_KEY, dataRaspaHoje());
-    raspaCanvas.style.display = "none";
+    grid.innerHTML = [0, 1, 2].map(() => `
+        <div class="lottery-row">
+            ${[0, 1, 2].map(() => `
+                <div class="lottery-cell-wrap lottery-cell-bloqueada">🔒</div>
+            `).join("")}
+        </div>`).join("");
+    strip.innerHTML = `<span>Limite diário</span><strong>Volte amanhã 🗓️</strong>`;
+    msg.innerHTML = "Você já participou hoje. Tente novamente amanhã!";
+    msg.style.display = "block";
+    fill.style.width = "100%";
+    lbl.textContent = "Limite diário usado";
+}
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+
+function _desenharCelula(ctx, w, h) {
+    ctx.globalCompositeOperation = "source-over";
+
+    // Fundo prata com gradiente
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, "#e0e0e0");
+    grad.addColorStop(0.5, "#b0b0b0");
+    grad.addColorStop(1, "#c8c8c8");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Ruído de textura
+    ctx.fillStyle = "rgba(255,255,255,.2)";
+    for (let i = 0; i < 80; i++)
+        ctx.fillRect(Math.random() * w, Math.random() * h, 1.2, 1.2);
+    ctx.fillStyle = "rgba(0,0,0,.07)";
+    for (let i = 0; i < 50; i++)
+        ctx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+
+    // Ponto de interrogação
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#555";
+    ctx.font = `bold ${Math.round(h * 0.5)}px Arial`;
+    ctx.fillText("?", w / 2, h / 2);
+}
+
+function _iniciarCelula(idx, e) {
+    const c = ctxCelulas[idx];
+    if (!c || c.revelada || terminouRaspa) return;
+    raspando = true;
+    celulaAtiva = idx;
+    c.cv.setPointerCapture(e.pointerId);
+    _rasparCelula(idx, e);
+}
+
+function _rasparCelula(idx, e) {
+    const c = ctxCelulas[idx];
+    if (!c || c.revelada) return;
+    const rect = c.cv.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (c.cv.width / rect.width);
+    const y = (e.clientY - rect.top) * (c.cv.height / rect.height);
+    c.ctx.globalCompositeOperation = "destination-out";
+    c.ctx.beginPath();
+    c.ctx.arc(x, y, 22, 0, Math.PI * 2);
+    c.ctx.fill();
+    _verificarCelula(idx);
+}
+
+function _verificarCelula(idx) {
+    const c = ctxCelulas[idx];
+    const img = c.ctx.getImageData(0, 0, c.cv.width, c.cv.height);
+    let transp = 0;
+    for (let i = 3; i < img.data.length; i += 4)
+        if (img.data[i] === 0) transp++;
+    const pct = transp / (c.cv.width * c.cv.height) * 100;
+
+    if (pct >= 55 && !c.revelada) {
+        c.revelada = true;
+        celulasReveladas++;
+
+        // Desenha o emoji diretamente no canvas (não injeta no DOM)
+        c.ctx.globalCompositeOperation = "source-over";
+        c.ctx.clearRect(0, 0, c.cv.width, c.cv.height);
+
+        // Fundo claro da célula revelada
+        const grad = c.ctx.createLinearGradient(0, 0, c.cv.width, c.cv.height);
+        grad.addColorStop(0, "#fff8ee");
+        grad.addColorStop(1, "#ffe8b0");
+        c.ctx.fillStyle = grad;
+        c.ctx.fillRect(0, 0, c.cv.width, c.cv.height);
+
+        // Emoji
+        c.ctx.textAlign = "center";
+        c.ctx.textBaseline = "middle";
+        c.ctx.font = `${Math.round(c.cv.height * 0.52)}px Arial`;
+        c.ctx.fillText(gridSimbolos[idx], c.cv.width / 2, c.cv.height / 2);
+        c.ctx.globalCompositeOperation = "source-over";
+
+        // Progresso
+        document.getElementById("raspa-prog-fill").style.width = (celulasReveladas / 9 * 100) + "%";
+        document.getElementById("raspa-prog-label").textContent = `${celulasReveladas} de 9 revelados`;
+
+        if (celulasReveladas === 9) _finalizarRaspa();
+    }
+}
+
+// ── FINALIZAR ─────────────────────────────────────────────────────────────────
+
+function _finalizarRaspa() {
+    if (terminouRaspa) return;
+    terminouRaspa = true;
+    localStorage.setItem(RASPA_ULTIMA_DATA_KEY, _dataHoje());
+
     document.getElementById("raspa-prog-fill").style.width = "100%";
-    document.getElementById("raspa-prog-label").textContent = "100% revelado";
+    document.getElementById("raspa-prog-label").textContent = "Tudo revelado! 🎉";
 
-    document.querySelectorAll(".lottery-cell-symbol").forEach(el => el.classList.add("revealed"));
-
+    const strip = document.getElementById("lottery-prize-strip");
     const msg = document.getElementById("raspa-msg");
-    if (premio && simbolos.filter(s => s === premio.emoji).length === 3) {
-        msg.innerHTML = `🎉 PARABÉNS!<br>${premio.emoji} ${premio.nome}<br>${premio.sub}`;
+
+    if (premioGanho) {
+        // Destaca linha ou coluna vencedora com borda dourada via canvas
+        const indices = [];
+        if (premioGanho.tipo === "linha") {
+            for (let ci = 0; ci < 3; ci++) indices.push(premioGanho.indice * 3 + ci);
+        } else {
+            for (let li = 0; li < 3; li++) indices.push(li * 3 + premioGanho.indice);
+        }
+
+        indices.forEach(idx => {
+            const c = ctxCelulas[idx];
+            if (!c) return;
+            c.ctx.globalCompositeOperation = "source-over";
+            c.ctx.strokeStyle = "#f5c518";
+            c.ctx.lineWidth = 5;
+            c.ctx.strokeRect(2, 2, c.cv.width - 4, c.cv.height - 4);
+        });
+
+        if (premioGanho.tipo === "linha") {
+            const rowEl = document.getElementById(`lottery-row-${premioGanho.indice}`);
+            if (rowEl) rowEl.classList.add("winner");
+        } else {
+            indices.forEach(idx => {
+                const wrap = document.getElementById(`cell-wrap-${idx}`);
+                if (wrap) wrap.classList.add("winner-col");
+            });
+        }
+
+        const descTipo = premioGanho.tipo === "linha"
+            ? `Linha ${premioGanho.indice + 1}`
+            : `Coluna ${premioGanho.indice + 1}`;
+
+        strip.innerHTML = `<span>Prêmio alvo</span><strong>${premioGanho.emoji} ${premioGanho.nome}</strong>`;
+        msg.innerHTML = `🎉 PARABÉNS! Você fez combinação na <strong>${descTipo}</strong>!<br>
+            ${premioGanho.emoji} <strong>${premioGanho.nome}</strong> — ${premioGanho.sub}<br>
+            <small style="opacity:.75;font-weight:400">Apresente esta tela na secretaria. Válido por 30 dias.</small>`;
         msg.classList.add("win");
     } else {
-        msg.innerHTML = `Não foi dessa vez!<br>Esta cartela não tem três símbolos iguais do prêmio.`;
+        strip.innerHTML = `<span>Prêmio alvo</span><strong>Sem combinação desta vez</strong>`;
+        msg.innerHTML = `Não foi dessa vez! Nenhuma linha ou coluna com 3 iguais.<br>
+            <a href="#matricula" style="color:inherit;text-decoration:underline;font-size:.85rem">
+            Conheça nossos cursos →</a>`;
         msg.classList.remove("win");
     }
     msg.style.display = "block";
 }
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function _dataHoje() {
+    return new Date().toLocaleDateString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric", month: "2-digit", day: "2-digit"
+    });
+}
+
+function jaRaspouHoje() {
+    return localStorage.getItem(RASPA_ULTIMA_DATA_KEY) === _dataHoje();
+}
+
+
 function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
 function showErr(id, show) {

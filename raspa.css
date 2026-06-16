@@ -1,241 +1,276 @@
-﻿/* RASPADINHA ESTILO LOTERIA */
+﻿/* ── RASPADINHA — ESTILO PERGAMINHO ─────────────────────────────────────────── */
+
 .raspa-wrap {
-    max-width: 620px;
+    max-width: 480px;
     margin: 0 auto;
     text-align: center;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .raspa-title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
     color: var(--amarelo);
-    letter-spacing: 1px;
-    margin-bottom: .35rem;
+    letter-spacing: 3px;
+    margin-bottom: .2rem;
 }
 
 .raspa-sub {
     color: var(--cinza-claro);
-    font-size: .98rem;
-    margin: 0 auto 1.5rem;
-    max-width: 520px;
-    line-height: 1.6;
+    font-size: .88rem;
+    margin: 0 auto 1.2rem;
+    max-width: 400px;
+    line-height: 1.55;
 }
 
-.raspa-canvas-wrap {
-    position: relative;
-    width: min(100%, 540px);
-    margin: 0 auto;
-}
+/* ── CARTELA PERGAMINHO ──────────────────────────────────────────────────── */
 
 .lottery-card {
     position: relative;
-    min-height: 430px;
-    padding: 1rem;
-    overflow: hidden;
+    padding: 1rem .9rem 1.2rem;
     user-select: none;
+    border-radius: 10px;
+
+    /* Textura de pergaminho */
     background:
-        linear-gradient(135deg, rgba(245, 197, 24, .16), transparent 34%),
-        radial-gradient(circle at top right, rgba(255, 255, 255, .12), transparent 35%),
-        #121212;
-    border: 3px solid var(--amarelo);
-    border-radius: 8px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, .28), inset 0 0 0 2px rgba(255, 255, 255, .08);
+        radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.18) 0%, transparent 65%),
+        linear-gradient(175deg, #c89b4a 0%, #e8b95a 25%, #d4a040 55%, #c08030 100%);
+
+    border: 3px solid #7a5010;
+    box-shadow:
+        0 0 0 1px rgba(255,220,100,.25),
+        0 16px 48px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,230,120,.3);
 }
 
-.lottery-card::before,
-.lottery-card::after {
-    content: "$ $ $ $ $ $ $ $ $ $ $ $";
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    white-space: nowrap;
-    color: rgba(18, 18, 18, .85);
-    background: var(--amarelo);
-    font-weight: 800;
-    letter-spacing: 10px;
-}
-
-.lottery-card::before { top: 0; }
-.lottery-card::after { bottom: 0; }
-
+/* Faixa-título no topo */
 .lottery-card-header {
     position: relative;
-    z-index: 1;
+    margin: 0 .2rem .8rem;
+    padding: .5rem 1rem;
+    background: linear-gradient(90deg, #6b2000, #a03010 40%, #6b2000);
+    border-radius: 6px;
+    border: 2px solid #4a1800;
+    box-shadow: 0 3px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,180,100,.2);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
-    margin: 2rem 0 1rem;
-    padding: .75rem .9rem;
-    color: var(--branco);
-    background: rgba(0, 0, 0, .38);
-    border: 1px dashed rgba(245, 197, 24, .7);
-    border-radius: 6px;
+    gap: .5rem;
 }
 
 .lottery-brand {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.65rem;
-    color: var(--amarelo);
-    letter-spacing: 2px;
-    text-align: left;
+    font-size: 1.35rem;
+    color: #ffd87a;
+    letter-spacing: 3px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5);
 }
 
 .lottery-prize-label {
-    padding: .35rem .55rem;
-    border-radius: 4px;
-    background: var(--amarelo);
-    color: var(--preto);
-    font-size: .72rem;
+    font-size: .6rem;
     font-weight: 800;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
+    color: #6b2000;
+    background: #ffd87a;
+    padding: .28rem .5rem;
+    border-radius: 3px;
     white-space: nowrap;
 }
 
+/* Faixa do prêmio alvo */
 .lottery-prize-strip {
-    position: relative;
-    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
-    margin-bottom: 1rem;
-    padding: .8rem .9rem;
-    background: #f5f5f5;
-    color: #111;
-    border-radius: 6px;
-    border: 2px solid rgba(0, 0, 0, .8);
-    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .12);
+    margin: 0 .2rem .7rem;
+    padding: .5rem .75rem;
+    background: rgba(255,255,255,.88);
+    border-radius: 5px;
+    border: 2px solid rgba(0,0,0,.25);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.12);
 }
 
 .lottery-prize-strip span {
-    font-size: .7rem;
-    font-weight: 900;
-    letter-spacing: 1.4px;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    color: #555;
+    color: #888;
 }
 
 .lottery-prize-strip strong {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(1.1rem, 3.4vw, 1.55rem);
-    line-height: 1;
+    font-size: 1.2rem;
+    color: #1a1a1a;
     letter-spacing: .5px;
-    text-align: right;
 }
+
+/* ── GRADE 3×3 ───────────────────────────────────────────────────────────── */
 
 .lottery-grid {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: .55rem;
-    padding: .75rem;
-    background: rgba(0, 0, 0, .32);
-    border: 1px solid rgba(255, 255, 255, .12);
-    border-radius: 6px;
+    padding: .6rem;
+    background: rgba(80,40,0,.3);
+    border: 2px solid rgba(80,40,0,.5);
+    border-radius: 8px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.3);
 }
 
+.lottery-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .55rem;
+    position: relative;
+}
+
+
+
+/* ── CÉLULA ──────────────────────────────────────────────────────────────── */
+
+.lottery-cell-wrap {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    /* Moldura estilo madeira */
+    background: linear-gradient(145deg, #8b5e20, #5a3800);
+    padding: 3px;
+    box-shadow: 0 3px 8px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,200,80,.2);
+}
+
+/* Interior da célula — completamente invisível até revelar */
 .lottery-cell-symbol {
     display: flex;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1;
-    min-width: 0;
-    font-size: clamp(2.15rem, 9vw, 4rem);
-    background: linear-gradient(180deg, #fff, #d8d8d8);
-    border: 2px solid #111;
+    width: 100%;
+    height: 100%;
+    font-size: clamp(1.6rem, 6.5vw, 2.5rem);
+    background: linear-gradient(160deg, #fff8ee, #ffe8b0);
     border-radius: 6px;
-    box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .14);
-    opacity: .22;
-    transition: opacity .18s ease, transform .18s ease;
+    border: 1px solid rgba(139,80,20,.35);
+    opacity: 0;
+    visibility: hidden;              /* garante que não aparece antes */
+    transition: opacity .3s ease, transform .3s ease, visibility 0s .3s;
+    color: #1a1a1a;
 }
 
 .lottery-cell-symbol.revealed {
     opacity: 1;
-    transform: scale(1.02);
+    visibility: visible;
+    transition: opacity .3s ease, transform .3s ease, visibility 0s 0s;
+    transform: scale(1.06);
 }
 
-.raspa-canvas {
+
+
+/* ── CANVAS POR CÉLULA ───────────────────────────────────────────────────── */
+
+.cell-canvas {
     position: absolute;
-    inset: 0;
-    z-index: 4;
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
+    inset: 3px;          /* respeita o padding da moldura */
+    width: calc(100% - 6px);
+    height: calc(100% - 6px);
+    border-radius: 6px;
     cursor: crosshair;
     touch-action: none;
+    z-index: 4;
 }
 
+.raspa-canvas { display: none !important; }
+
+/* ── LINHA VENCEDORA ─────────────────────────────────────────────────────── */
+
+.lottery-row.winner .lottery-cell-wrap {
+    background: linear-gradient(145deg, #f5c518, #c9a010);
+    box-shadow: 0 0 16px rgba(245,197,24,.7), 0 3px 8px rgba(0,0,0,.4);
+}
+
+.lottery-row.winner .lottery-cell-symbol {
+    background: linear-gradient(160deg, #fffde7, #f5c518);
+    animation: cellWin .45s ease forwards;
+}
+
+@keyframes cellWin {
+    0%   { transform: scale(1.06); }
+    50%  { transform: scale(1.16); }
+    100% { transform: scale(1.08); }
+}
+
+/* ── COLUNA VENCEDORA ────────────────────────────────────────────────────── */
+
+.lottery-cell-wrap.winner-col {
+    background: linear-gradient(145deg, #f5c518, #c9a010);
+    box-shadow: 0 0 16px rgba(245,197,24,.7), 0 3px 8px rgba(0,0,0,.4);
+}
+
+.lottery-cell-wrap.winner-col .lottery-cell-symbol {
+    background: linear-gradient(160deg, #fffde7, #f5c518);
+    animation: cellWin .45s ease forwards;
+}
+
+/* ── PROGRESSO ───────────────────────────────────────────────────────────── */
+
 .raspa-prog-wrap {
-    width: min(100%, 540px);
-    margin: 1rem auto 0;
+    margin: .9rem auto 0;
+    width: min(100%, 480px);
+    text-align: left;
 }
 
 .raspa-progresso {
-    height: 9px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, .12);
+    height: 6px;
+    background: rgba(255,255,255,.1);
     border-radius: 99px;
+    overflow: hidden;
 }
 
 .raspa-prog-fill {
-    width: 0;
     height: 100%;
+    width: 0;
     background: var(--amarelo);
     border-radius: inherit;
-    transition: width .12s linear;
+    transition: width .15s linear;
 }
 
 .raspa-prog-label {
-    margin-top: .4rem;
+    margin-top: .35rem;
+    font-size: .78rem;
     color: var(--cinza-claro);
-    font-size: .82rem;
 }
+
+/* ── MENSAGEM FINAL ──────────────────────────────────────────────────────── */
 
 .raspa-msg {
     display: none;
-    width: min(100%, 540px);
+    width: min(100%, 480px);
     margin: 1rem auto 0;
-    padding: 1rem;
-    color: var(--branco);
-    background: rgba(255, 255, 255, .08);
-    border: 1px solid rgba(255, 255, 255, .15);
+    padding: 1rem 1.2rem;
     border-radius: 6px;
-    line-height: 1.6;
+    font-size: .9rem;
+    line-height: 1.65;
+    color: var(--branco);
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.14);
+    text-align: left;
 }
 
 .raspa-msg.win {
-    color: var(--preto);
     background: var(--amarelo);
-    border-color: var(--amarelo);
-    font-weight: 800;
+    border-color: var(--amarelo-escuro);
+    color: #0a0a0a;
+    font-weight: 700;
 }
 
-@media (max-width: 520px) {
-    .lottery-card {
-        min-height: 370px;
-        padding: .75rem;
-    }
+/* ── RESPONSIVO ──────────────────────────────────────────────────────────── */
 
+@media (max-width: 520px) {
     .lottery-card-header,
     .lottery-prize-strip {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: flex-start;
+        gap: .3rem;
     }
-
-    .lottery-prize-strip strong {
-        text-align: left;
-    }
-
-    .lottery-grid {
-        gap: .4rem;
-        padding: .5rem;
-    }
+    .lottery-row-label { display: none; }
 }
