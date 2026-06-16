@@ -60,8 +60,8 @@ function populateSelect() {
     if (!sel) return;
     CURSOS.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = `TÃ©cnico em ${c.nome}`;
-        opt.textContent = `TÃ©cnico em ${c.nome}`;
+        opt.value = `Técnico em ${c.nome}`;
+        opt.textContent = `Técnico em ${c.nome}`;
         sel.appendChild(opt);
     });
 }
@@ -118,7 +118,7 @@ function calcResult() {
 
 function showResult(curso, emoji, descricao) {
     document.getElementById('result-icon').textContent = emoji;
-    document.getElementById('result-course').textContent = 'TÃ©cnico em ' + curso;
+    document.getElementById('result-course').textContent = 'Técnico em ' + curso;
     document.getElementById('result-text').textContent = descricao;
     showScreen('quiz-result');
 }
