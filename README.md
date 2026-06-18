@@ -110,4 +110,4 @@ Esses dados não são enviados para um servidor externo. Ao limpar os dados do n
 
 ## Autor
 
-Projeto desenvolvido para o site do Colégio Técnico KNOW.
+Projeto desenvolvido por: Kauã Sander de Moraes e Davi Kleemann. Para o site do Colégio Técnico KNOW.
